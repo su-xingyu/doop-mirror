@@ -1,0 +1,45 @@
+.decl InverseIOMethod(writeMethod: Method, readMethod: Method)
+InverseIOMethod("<Exp: void writeFile(java.lang.String,java.lang.String)>", "<Exp: java.lang.String readFile(java.lang.String)>").
+.output InverseIOMethod
+
+.decl Write(fileName: symbol, content: symbol, writeMethod: Method)
+.output Write
+.decl Read(fileName: symbol, content: Var, readMethod: Method)
+.output Read
+.decl FileName(fileName: symbol)
+.output FileName
+.decl EqualFileName(a: symbol, b: symbol)
+.output EqualFileName
+.decl InverseIO(writeContent: symbol, readContent: Var)
+.output InverseIO
+
+Write(?fileName, ?content, "<Exp: void writeFile(java.lang.String,java.lang.String)>"),
+FileName(?fileName) :-
+    CallGraphEdge(?invocation, "<Exp: void writeFile(java.lang.String,java.lang.String)>"),
+    ActualParam(0, ?invocation, ?fileName),
+    ActualParam(1, ?invocation, ?content).
+
+Read(?fileName, ?content, "<Exp: java.lang.String readFile(java.lang.String)>"),
+FileName(?fileName) :-
+    CallGraphEdge(?invocation, "<Exp: java.lang.String readFile(java.lang.String)>"),
+    ActualParam(0, ?invocation, ?fileName),
+    AssignReturnValue(?invocation, ?content).
+
+EqualFileName(?a, ?b) :-
+    FileName(?a),
+    Assign(?a, ?b).
+
+EqualFileName(?a, ?b) :-
+    EqualFileName(?b, ?a).
+
+EqualFileName(?a, ?c) :-
+    EqualFileName(?a, ?b), EqualFileName(?b, ?c).
+
+EqualFileName(?a, ?a) :-
+    FileName(?a).
+
+InverseIO(?writeContent, ?readContent) :-
+    Write(?writeFileName, ?writeContent, ?writeMethod),
+    Read(?readFileName, ?readContent, ?readMethod),
+    EqualFileName(?writeFileName, ?readFileName),
+    InverseIOMethod(?writeMethod, ?readMethod).
