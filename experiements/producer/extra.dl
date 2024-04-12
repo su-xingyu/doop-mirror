@@ -1,0 +1,55 @@
+// Serializer definition
+.decl isSerializerMethod(?method:Method)
+isSerializerMethod("<Producer: java.lang.String toHexString(java.lang.String)>").
+
+.decl SerializerInputParam(?method:Method, ?index:number)
+SerializerInputParam("<Producer: java.lang.String toHexString(java.lang.String)>", 0).
+
+.decl isSerializerId(?value:Value)
+.output isSerializerId
+
+// serializerId is made a special type of heap value to fit in the framework
+.decl Serializer(?serializerId:symbol, ?input:Value, ?output:Var, ?serializerMethod:Method)
+.output Serializer
+
+// Writer definition
+.decl isWriterMethod(?method:Method)
+isWriterMethod("<Producer: void toFile(java.lang.String,java.lang.String)>").
+
+.decl WriterFileNameParam(?method:Method, ?index:number)
+WriterFileNameParam("<Producer: void toFile(java.lang.String,java.lang.String)>", 0).
+
+.decl WriterTextParam(?method:Method, ?index:number)
+WriterTextParam("<Producer: void toFile(java.lang.String,java.lang.String)>", 1).
+
+.decl Writer(?writerId:symbol, ?fileName:Value, ?text:Value, ?writerMethod:Method)
+.output Writer
+
+// Producer definition
+.decl Producer(?writerId:symbol, ?serializerId:symbol)
+.output Producer
+
+// Reuse mainAnalysis.VarPointsTo for context-sensitive analysis
+isSerializerId(?serializerId),
+Serializer(?serializerId, ?input, ?output, ?inmethod),
+mainAnalysis.configuration.RecordContextRequest(?ctx, ?serializerId, ?output) :-
+    isSerializerMethod(?inmethod),
+    mainAnalysis.CallGraphEdge(?ctx, ?invocation, _, ?inmethod),
+    AssignReturnValue(?invocation, ?output),
+    SerializerInputParam(?inmethod, ?index),
+    ActualParam(?index, ?invocation, ?input),
+    ?serializerId = cat(?inmethod, cat(": ", ?input)).
+
+Writer(?writerId, ?fileName, ?text, ?inmethod) :-
+    isWriterMethod(?inmethod),
+    mainAnalysis.CallGraphEdge(_, ?invocation, _, ?inmethod),
+    WriterFileNameParam(?inmethod, ?fileNameIndex),
+    ActualParam(?fileNameIndex, ?invocation, ?fileName),
+    WriterTextParam(?inmethod, ?textIndex),
+    ActualParam(?textIndex, ?invocation, ?text),
+    ?writerId = cat("<", cat(?inmethod, cat(": ", cat(?fileName, cat(", ", cat(?text, ">")))))).
+
+Producer(?writerId, ?serializerId) :-
+    Writer(?writerId, _, ?text, _),
+    mainAnalysis.VarPointsTo(_, ?serializerId, _, ?text),
+    isSerializerId(?serializerId).
