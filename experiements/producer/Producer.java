@@ -5,11 +5,15 @@ import java.io.IOException;
 
 public class Producer {
 	public static void main(String[] args) throws IOException {
-                String fileName = "temp.txt";
-                String text = "Hello World!";
-                String hex = toHexString(text);
-                System.out.println("Encoded: " + hex);
-                toFile(fileName, hex);
+                String fileName1 = "fun1.txt";
+                String fun1Text = fun1();
+                System.out.println("fun1 encoded : " + fun1Text);
+                toFile(fileName1, fun1Text);
+
+                String fileName2 = "fun2.txt";
+                String fun2Text = fun2();
+                System.out.println("fun2 encoded : " + fun2Text);
+                toFile(fileName2, fun2Text);
 	}
 
         private static String toHexString(String text) {
@@ -31,6 +35,24 @@ public class Producer {
                 FileWriter fileWriter = new FileWriter(fileName);
                 fileWriter.write(text);
                 fileWriter.close();
+        }
+
+        private static String fun1() {
+                String text = "abcdefg";
+                String hex = toHexString(text);
+                String idHex = id(hex);
+                return idHex;
+        }
+
+        private static String fun2() {
+                String text = "hijklmn";
+                String hex = toHexString(text);
+                String idHex = id(hex);
+                return idHex;
+        }
+
+        private static String id(String str) {
+                return str;
         }
 }
 
