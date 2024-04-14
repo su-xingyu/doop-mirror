@@ -6,9 +6,8 @@ isSerializerMethod("<Producer: java.lang.String toHexString(java.lang.String)>")
 SerializerInputParam("<Producer: java.lang.String toHexString(java.lang.String)>", 0).
 
 .decl isSerializerId(?value:Value)
-.output isSerializerId
 
-// serializerId is made a special heap value with type <java.lang.String> to fit in the framework
+// serializerId is made a special heap value to fit in the framework
 .decl Serializer(?serializerId:Value, ?input:Value, ?output:Var, ?serializerMethod:Method)
 .output Serializer
 
@@ -26,11 +25,13 @@ WriterTextParam("<Producer: void toFile(java.lang.String,java.lang.String)>", 1)
 .output Writer
 
 // Producer definition
-.decl Producer(?writerId:Value, ?serializerId:Value)
+.decl Producer(?serializerId:Value, ?writerId:Value)
 .output Producer
 
 // Reuse mainAnalysis.VarPointsTo for context-sensitive analysis
+// Must register the type of ?serializerId to make things work
 isSerializerId(?serializerId),
+mainAnalysis.Value_Type(?serializerId, ?type),
 Serializer(?serializerId, ?input, ?output, ?inmethod),
 mainAnalysis.configuration.RecordContextRequest(?ctx, ?serializerId, ?output) :-
     isSerializerMethod(?inmethod),
@@ -38,12 +39,8 @@ mainAnalysis.configuration.RecordContextRequest(?ctx, ?serializerId, ?output) :-
     AssignReturnValue(?invocation, ?output),
     SerializerInputParam(?inmethod, ?index),
     ActualParam(?index, ?invocation, ?input),
+    Method_ReturnType(?inmethod, ?type),
     ?serializerId = cat("<", cat(?inmethod, cat(": ", cat(?input, ">")))).
-
-// Need to register the type of serializerId to make things work
-mainAnalysis.Value_Type(?serializerId, ?type) :-
-    isSerializerId(?serializerId),
-    ?type = "java.lang.String".
 
 Writer(?writerId, ?fileName, ?text, ?inmethod) :-
     isWriterMethod(?inmethod),
@@ -54,7 +51,7 @@ Writer(?writerId, ?fileName, ?text, ?inmethod) :-
     ActualParam(?textIndex, ?invocation, ?text),
     ?writerId = cat("<", cat(?inmethod, cat(": ", cat(?fileName, cat(", ", cat(?text, ">")))))).
 
-Producer(?writerId, ?serializerId) :-
+Producer(?serializerId, ?writerId) :-
     Writer(?writerId, _, ?text, _),
     mainAnalysis.VarPointsTo(_, ?serializerId, _, ?text),
     isSerializerId(?serializerId).

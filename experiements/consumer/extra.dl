@@ -1,0 +1,53 @@
+// Reader definition
+.decl isReaderMethod(?method:Method)
+isReaderMethod("<consumer.Reader: java.lang.String fromFile()>").
+
+.decl ReaderFileNameField(?method:Method, ?field:Field)
+ReaderFileNameField("<consumer.Reader: java.lang.String fromFile()>", "<consumer.Reader: java.lang.String fileName>").
+
+.decl isReaderId(?value:Value)
+
+// readerId is made a special heap value to fit in the framework
+.decl Reader(?readerId:Value, ?fileName:Value, ?text:Var, ?readerMethod:Method)
+.output Reader
+
+// Deserializer definition
+.decl isDeserializerMethod(?method:Method)
+isDeserializerMethod("<consumer.Deserializer: java.lang.String fromHexString(java.lang.String)>").
+
+.decl DeserializerInputParam(?method:Method, ?index:number)
+DeserializerInputParam("<consumer.Deserializer: java.lang.String fromHexString(java.lang.String)>", 0).
+
+.decl Deserializer(?deserializerId:Value, ?input:Value, ?output:Var, ?deserializerMethod:Method)
+.output Deserializer
+
+// Consumer definition
+.decl Consumer(?readerId:Value, ?deserializerId:Value)
+.output Consumer
+
+// Reuse mainAnalysis.VarPointsTo for context-sensitive analysis
+// Must register the type of ?readerId to make things work
+isReaderId(?readerId),
+mainAnalysis.Value_Type(?readerId, ?type),
+Reader(?readerId, ?fileName, ?text, ?inmethod),
+mainAnalysis.configuration.RecordContextRequest(?ctx, ?readerId, ?text) :-
+    isReaderMethod(?inmethod),
+    mainAnalysis.CallGraphEdge(?ctx, ?invocation, _, ?inmethod),
+    ReaderFileNameField(?inmethod, ?fileName),
+    ThisVar(?inmethod, ?this),
+    AssignReturnValue(?invocation, ?text),
+    Method_ReturnType(?inmethod, ?type),
+    ?readerId = cat("<", cat(?inmethod, cat(": ", cat(?this, cat("->", cat(?fileName, ">")))))).
+
+Deserializer(?deserializerId, ?input, ?output, ?inmethod) :-
+    isDeserializerMethod(?inmethod),
+    mainAnalysis.CallGraphEdge(?_, ?invocation, _, ?inmethod),
+    AssignReturnValue(?invocation, ?output),
+    DeserializerInputParam(?inmethod, ?index),
+    ActualParam(?index, ?invocation, ?input),
+    ?deserializerId = cat("<", cat(?inmethod, cat(": ", cat(?input, ">")))).
+
+Consumer(?readerId, ?deserializerId) :-
+    Deserializer(?deserializerId, ?input, _, _),
+    mainAnalysis.VarPointsTo(_, ?readerId, _, ?input),
+    isReaderId(?readerId).
