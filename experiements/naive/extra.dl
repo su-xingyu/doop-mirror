@@ -35,6 +35,9 @@ isInverse("<Naive: java.lang.String toHexString(java.lang.String)>", "<Naive: ja
 .decl MustEqual(?serializerInput:Value, ?deserializerOutput:Var)
 .output MustEqual
 
+//.decl MustEqualTyped(?serializerInput: Value, ?deserializerOutput: Var, ?type: symbol)
+//.output MustEqualTyped
+
 // --- Rules ---
 // Reuse mainAnalysis.VarPointsTo for context-sensitive analysis
 // Must register the type of ?serializerOutputValue to make things work
@@ -63,7 +66,7 @@ MayAliasSerialized(?a, ?b) :-
 
 MayEqual(?serializerInput, ?deserializerOutput) :-
     isInverse(?serializerMethod, ?deserializerMethod),
-    Serializer(?_, ?serializerInput, ?serializerOutput, ?serializerMethod),
+    Serializer(_, ?serializerInput, ?serializerOutput, ?serializerMethod),
     Deserializer(?deserializerInput, ?deserializerOutput, ?deserializerMethod),
     MustAliasSerialized(?serializerOutput, ?deserializerInput).
 
@@ -72,6 +75,15 @@ MustAliasSerialized(?a, ?a) :-
 
 MustEqual(?serializerInput, ?deserializerOutput) :-
     isInverse(?serializerMethod, ?deserializerMethod),
-    Serializer(?_, ?serializerInput, ?serializerOutput, ?serializerMethod),
+    Serializer(_, ?serializerInput, ?serializerOutput, ?serializerMethod),
     Deserializer(?deserializerInput, ?deserializerOutput, ?deserializerMethod),
     MustAliasSerialized(?serializerOutput, ?deserializerInput).
+
+//MustEqualTyped(?stringConstant, ?deserializerOutput, "STRING") :-
+//    MustEqual(?serializerInput, ?deserializerOutput),
+//    AssignHeapAllocation(?stringConstant, ?serializerInput, _),
+//    isStringConstant(?stringConstant).
+
+//MustEqualTyped(?serializerInput, ?deserializerOutput, "VAR") :-
+//    MustEqual(?serializerInput, ?deserializerOutput),
+//    isVar(?serializerInput).
